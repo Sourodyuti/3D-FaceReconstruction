@@ -1,0 +1,47 @@
+# 3D Face Reconstruction - Configuration File
+# This file contains all configurable parameters for the system
+
+# Camera Settings
+camera:
+  device_id: 0              # Camera device ID (0 for default webcam)
+  width: 640                # Frame width
+  height: 480               # Frame height
+  fps: 30                   # Target frames per second
+
+# MediaPipe Face Mesh Settings
+mediapipe:
+  max_num_faces: 1          # Maximum number of faces to detect
+  refine_landmarks: true    # Enable landmark refinement for better accuracy
+  min_detection_confidence: 0.5   # Minimum confidence for face detection
+  min_tracking_confidence: 0.5    # Minimum confidence for face tracking
+
+# 3D Mesh Generation Settings
+mesh:
+  scale_factor: 10.0        # Scaling factor for X and Y coordinates
+  depth_scale: 10.0         # Scaling factor for Z coordinate (depth)
+  smoothing_iterations: 3   # Number of Laplacian smoothing iterations
+  enable_smoothing: true    # Enable mesh smoothing
+
+# Visualization Settings
+visualization:
+  window_width: 640         # 3D viewer window width
+  window_height: 480        # 3D viewer window height
+  show_wireframe: false     # Show mesh wireframe
+  show_landmarks: true      # Draw landmarks on video feed
+  show_axes: true           # Show coordinate axes in 3D view
+  background_color:         # RGB background color (0-1 range)
+    - 0.1
+    - 0.1
+    - 0.1
+
+# Export Settings
+export:
+  output_dir: ./output      # Directory for exported files
+  default_format: obj       # Default export format (obj, ply, stl, gltf)
+  texture_size: 1024        # Texture map resolution (width/height in pixels)
+
+# Stabilization Settings
+stabilization:
+  enable_kalman: true       # Enable Kalman filtering for landmark stabilization
+  process_noise: 0.01       # Process noise covariance (lower = smoother)
+  measurement_noise: 0.1    # Measurement noise covariance (lower = trust measurements more)
