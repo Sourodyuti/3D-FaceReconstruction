@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Face Reconstruction System</title>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #858796;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --dark-bg: #1a1a2e;
+            --light-bg: #f8f9fc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+
+        #viewer-container {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--primary-color);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: white;
+        }
+
+        .upload-area:hover {
+            background-color: #f0f4ff;
+            border-color: var(--info-color);
+        }
+
+        .upload-area.dragover {
+            background-color: #e3f2fd;
+            border-color: var(--success-color);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .progress {
+            height: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-processing {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .status-completed {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .status-error {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .control-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .form-range {
+            accent-color: var(--primary-color);
+        }
+
+        .file-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .file-size {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+
+        .viewer-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+
+        .viewer-controls .btn {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: none;
+            margin: 2px;
+        }
+
+        .viewer-controls .btn:hover {
+            background-color: white;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            #viewer-container {
+                height: 400px;
+            }
+
+            .upload-area {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-cube"></i> 3D Face Reconstruction
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="loadExample()">Example</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showHelp()">Help</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Left Panel: Input -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-upload"></i> Input Panel
+                    </div>
+                    <div class="card-body">
+                        <!-- Upload Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
+                            <h5>Drag & Drop Image</h5>
+                            <p class="text-muted">or click to browse</p>
+                            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                            <button class="btn btn-primary btn-sm"
+                                onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-folder-open"></i> Browse Files
+                            </button>
+                        </div>
+
+                        <!-- Camera Option -->
+                        <div class="mt-3">
+                            <button class="btn btn-primary w-100" id="cameraBtn" onclick="startCamera()">
+                                <i class="fas fa-camera"></i> Use Camera
+                            </button>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="mt-3" id="previewContainer" style="display: none;">
+                            <h6 class="form-label">Preview:</h6>
+                            <img id="previewImage" class="img-fluid rounded" style="max-height: 200px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-sliders-h"></i> Control Panel
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Quality</label>
+                            <select class="form-select" id="qualitySelect">
+                                <option value="low">Low (Fast)</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High (Best)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Smoothing: <span id="smoothingValue">3</span></label>
+                            <input type="range" class="form-range" id="smoothingRange" min="0" max="10" value="3">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Scale Factor: <span id="scaleValue">10.0</span></label>
+                            <input type="range" class="form-range" id="scaleRange" min="5" max="20" step="0.5"
+                                value="10">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Export Formats</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="formatObj" checked>
+                                <label class="form-check-label" for="formatObj">OBJ</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="formatPly" checked>
+                                <label class="form-check-label" for="formatPly">PLY</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="formatStl">
+                                <label class="form-check-label" for="formatStl">STL</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="formatGltf">
+                                <label class="form-check-label" for="formatGltf">GLTF</label>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary w-100" id="processBtn" onclick="processImage()" disabled>
+                            <i class="fas fa-cog"></i> Generate 3D Model
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="card mb-4" id="progressCard" style="display: none;">
+                    <div class="card-header">
+                        <i class="fas fa-spinner fa-spin"></i> Processing
+                    </div>
+                    <div class="card-body">
+                        <div class="progress mb-2">
+                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-muted text-center" id="progressText">Initializing...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: 3D Viewer -->
+            <div class="col-lg-6 col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-cube"></i> 3D Mesh Viewer
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="viewer-container">
+                            <canvas id="three-canvas"></canvas>
+
+                            <!-- Viewer Controls -->
+                            <div class="viewer-controls">
+                                <button class="btn btn-sm" onclick="toggleWireframe()" title="Toggle Wireframe">
+                                    <i class="fas fa-border-all"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="toggleTexture()" title="Toggle Texture">
+                                    <i class="fas fa-image"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="resetCamera()" title="Reset Camera">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="takeScreenshot()" title="Screenshot">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+
+                            <!-- Loading Overlay -->
+                            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                                <div>
+                                    <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
+                                    <p>Loading 3D Model...</p>
+                                </div>
+                            </div>
+
+                            <!-- No Model Message -->
+                            <div class="text-center text-white" id="noModelMessage"
+                                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                <i class="fas fa-cube fa-3x mb-3"></i>
+                                <p>No 3D model loaded</p>
+                                <p class="text-muted">Upload an image to generate a 3D model</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Info -->
+                <div class="card mb-4" id="modelInfoCard" style="display: none;">
+                    <div class="card-header">
+                        <i class="fas fa-info-circle"></i> Model Information
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Vertices:</strong> <span id="vertexCount">0</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Triangles:</strong> <span id="triangleCount">0</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Landmarks:</strong> 468
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Outputs -->
+            <div class="col-lg-3 col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-download"></i> Output Files
+                    </div>
+                    <div class="card-body">
+                        <div class="file-list" id="fileList">
+                            <p class="text-muted text-center">No files generated yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Depth Map -->
+                <div class="card mb-4" id="depthCard" style="display: none;">
+                    <div class="card-header">
+                        <i class="fas fa-layer-group"></i> Depth Map
+                    </div>
+                    <div class="card-body">
+                        <img id="depthImage" class="img-fluid rounded" style="max-height: 200px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+
+</html>

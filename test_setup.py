@@ -130,9 +130,7 @@ def main():
     else:
         print(f"{Colors.RED}{Colors.BOLD}✗ Some dependencies are missing!{Colors.RESET}\n")
         print("Please install missing dependencies:")
-        print(f"  {Colors.BLUE}pip install -r requirements.txt{Colors.RESET}")
-        print(f"  or")
-        print(f"  {Colors.BLUE}pip install -r requirements-clean.txt{Colors.RESET}\n")
+        print(f"  {Colors.BLUE}pip install -r requirements.txt{Colors.RESET}\n")
         return 1
 
 

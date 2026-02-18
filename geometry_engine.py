@@ -1,11 +1,25 @@
 import numpy as np
 import open3d as o3d
 from scipy.spatial import Delaunay
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict
 import logging
+import cv2
 
 logger = logging.getLogger(__name__)
 
+try:
+    import torch
+    import torchvision.transforms as transforms
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    # Note: If logger is used before it's assigned, it will still fail. 
+    # But here we initialized it just above.
+    pass
+
+# We can log here after logger is definitely defined
+if not HAS_TORCH:
+    logger.warning("PyTorch not available. MiDaS depth estimation will be disabled.")
 
 class GeometryEngine:
     """
@@ -281,8 +295,8 @@ class DepthEstimator:
         self.baseline_depth = baseline_depth
     
     def estimate_relative_depth(self, 
-                               landmarks: np.ndarray,
-                               reference_points: Optional[List[int]] = None) -> np.ndarray:
+                                landmarks: np.ndarray,
+                                reference_points: Optional[List[int]] = None) -> np.ndarray:
         """
         Estimate relative depth based on landmark positions
         
@@ -308,9 +322,9 @@ class DepthEstimator:
         return depth_map
     
     def create_depth_map_image(self, 
-                              landmarks: np.ndarray,
-                              image_shape: Tuple[int, int],
-                              colormap: int = 2) -> np.ndarray:
+                               landmarks: np.ndarray,
+                               image_shape: Tuple[int, int],
+                               colormap: int = 2) -> np.ndarray:
         """
         Create a depth map visualization
         
